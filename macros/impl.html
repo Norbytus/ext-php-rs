@@ -1,0 +1,350 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>impls - ext-php-rs</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ext-php-rs</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="php_impl-attribute"><a class="header" href="#php_impl-attribute"><code>#[php_impl]</code> Attribute</a></h1>
+<p>You can export an entire <code>impl</code> block to PHP. This exports all methods as well
+as constants to PHP on the class that it is implemented on. This requires the
+<code>#[php_class]</code> macro to already be used on the underlying struct. Trait
+implementations cannot be exported to PHP. Only one <code>impl</code> block can be exported
+per class.</p>
+<p>If you do not want a function exported to PHP, you should place it in a separate
+<code>impl</code> block.</p>
+<p>If you want to use async Rust, use <code>#[php_async_impl]</code>, instead: see <a href="./async_impl.html">here »</a> for more info.</p>
+<h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
+<p>Methods basically follow the same rules as functions, so read about the
+[<code>php_function</code>] macro first. The primary difference between functions and
+methods is they are bounded by their class object.</p>
+<p>Class methods can take a <code>&amp;self</code> or <code>&amp;mut self</code> parameter. They cannot take a
+consuming <code>self</code> parameter. Static methods can omit this <code>self</code> parameter.</p>
+<p>To access the underlying Zend object, you can take a reference to a
+<code>ZendClassObject&lt;T&gt;</code> in place of the self parameter, where the parameter must
+be named <code>self_</code>. This can also be used to return a reference to <code>$this</code>.</p>
+<p>By default, all methods are renamed in PHP to the camel-case variant of the Rust
+method name. This can be changed on the <code>#[php_impl]</code> attribute, by passing one
+of the following as the <code>rename_methods</code> option:</p>
+<ul>
+<li><code>"none"</code> - does not rename the methods.</li>
+<li><code>"camelCase"</code> - renames all methods to camel case (default).</li>
+<li><code>"snake_case"</code> - renames all methods to snake case.</li>
+</ul>
+<p>For example, to disable renaming, change the <code>#[php_impl]</code> attribute to
+<code>#[php_impl(rename_methods = "none")]</code>.</p>
+<p>The rest of the options are passed as separate attributes:</p>
+<ul>
+<li><code>#[php(defaults(i = 5, b = "hello")]</code> - Sets the default value for parameter(s).</li>
+<li><code>#[php(optional = i)]</code> - Sets the first optional parameter. Note that this also sets
+the remaining parameters as optional, so all optional parameters must be a
+variant of <code>Option&lt;T&gt;</code>.</li>
+<li><code>#[php(public)]</code>, <code>#[php(protected)]</code> and <code>#[php(private)]</code> - Sets the visibility of the
+method.</li>
+<li><code>#[php(name = "method_name")]</code> - Renames the PHP method to a different identifier,
+without renaming the Rust method name.</li>
+</ul>
+<p>The <code>#[php(defaults)]</code> and <code>#[php(optional)]</code> attributes operate the same as the
+equivalent function attribute parameters.</p>
+<h3 id="constructors"><a class="header" href="#constructors">Constructors</a></h3>
+<p>By default, if a class does not have a constructor, it is not constructable from
+PHP. It can only be returned from a Rust function to PHP.</p>
+<p>Constructors are Rust methods which can take any amount of parameters and
+returns either <code>Self</code> or <code>Result&lt;Self, E&gt;</code>, where <code>E: Into&lt;PhpException&gt;</code>. When
+the error variant of <code>Result</code> is encountered, it is thrown as an exception and
+the class is not constructed.</p>
+<p>Constructors are designated by either naming the method <code>__construct</code> or by
+annotating a method with the <code>#[php(constructor)]</code> attribute. Note that when using
+the attribute, the function is not exported to PHP like a regular method.</p>
+<p>Constructors cannot use the visibility or rename attributes listed above.</p>
+<h2 id="constants"><a class="header" href="#constants">Constants</a></h2>
+<p>Constants are defined as regular Rust <code>impl</code> constants. Any type that implements
+<code>IntoZval</code> can be used as a constant. Constant visibility is not supported at
+the moment, and therefore no attributes are valid on constants.</p>
+<h2 id="property-getters-and-setters"><a class="header" href="#property-getters-and-setters">Property getters and setters</a></h2>
+<p>You can add properties to classes which use Rust functions as getters and/or
+setters. This is done with the <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes. By
+default, the <code>get_</code> or <code>set_</code> prefix is trimmed from the start of the function
+name, and the remainder is used as the property name.</p>
+<p>If you want to use a different name for the property, you can pass a <code>rename</code>
+option to the attribute which will change the property name.</p>
+<p>Properties do not necessarily have to have both a getter and a setter, if the
+property is immutable the setter can be omitted, and vice versa for getters.</p>
+<p>The <code>#[php(getter)]</code> and <code>#[php(setter)]</code> attributes are mutually exclusive on methods.
+Properties cannot have multiple getters or setters, and the property name cannot
+conflict with field properties defined on the struct.</p>
+<p>As the same as field properties, method property types must implement both
+<code>IntoZval</code> and <code>FromZval</code>.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<p>Continuing on from our <code>Human</code> example in the structs section, we will define a
+constructor, as well as getters for the properties. We will also define a
+constant for the maximum age of a <code>Human</code>.</p>
+<pre><pre class="playground"><code class="language-rust no_run"><span class="boring">#![cfg_attr(windows, feature(abi_vectorcall))]
+</span><span class="boring">extern crate ext_php_rs;
+</span>use ext_php_rs::{prelude::*, types::ZendClassObject};
+
+#[php_class]
+#[derive(Debug, Default)]
+pub struct Human {
+    name: String,
+    age: i32,
+    #[php(prop)]
+    address: String,
+}
+
+#[php_impl]
+impl Human {
+    const MAX_AGE: i32 = 100;
+
+    // No `#[constructor]` attribute required here - the name is `__construct`.
+    pub fn __construct(name: String, age: i32) -&gt; Self {
+        Self {
+            name,
+            age,
+            address: String::new()
+        }
+    }
+
+    #[php(getter)]
+    pub fn get_name(&amp;self) -&gt; String {
+        self.name.to_string()
+    }
+
+    #[php(setter)]
+    pub fn set_name(&amp;mut self, name: String) {
+        self.name = name;
+    }
+
+    #[php(getter)]
+    pub fn get_age(&amp;self) -&gt; i32 {
+        self.age
+    }
+
+    pub fn introduce(&amp;self) {
+        println!("My name is {} and I am {} years old. I live at {}.", self.name, self.age, self.address);
+    }
+
+    pub fn get_raw_obj(self_: &amp;mut ZendClassObject&lt;Human&gt;) -&gt; &amp;mut ZendClassObject&lt;Human&gt; {
+        dbg!(self_)
+    }
+
+    pub fn get_max_age() -&gt; i32 {
+        Self::MAX_AGE
+    }
+}
+#[php_module]
+pub fn get_module(module: ModuleBuilder) -&gt; ModuleBuilder {
+    module.class::&lt;Human&gt;()
+}
+<span class="boring">fn main() {}</span></code></pre></pre>
+<p>Using our newly created class in PHP:</p>
+<pre><code class="language-php">&lt;?php
+
+$me = new Human('David', 20);
+
+$me-&gt;introduce(); // My name is David and I am 20 years old.
+var_dump(Human::get_max_age()); // int(100)
+var_dump(Human::MAX_AGE); // int(100)
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../macros/classes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../macros/constant.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../macros/classes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../macros/constant.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
