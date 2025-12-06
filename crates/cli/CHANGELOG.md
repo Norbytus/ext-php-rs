@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.14](https://github.com/extphprs/ext-php-rs/compare/cargo-php-v0.1.13...cargo-php-v0.1.14) - 2025-12-06
+
+### Other
+- *(deps)* Update libloading requirement from 0.8 to 0.9 (by @dependabot[bot])
+- *(rust)* Bump Rust edition to 2024 (by @ptondereau)
 ## [0.1.13](https://github.com/extphprs/ext-php-rs/compare/cargo-php-v0.1.12...cargo-php-v0.1.13) - 2025-10-29
 
 ### Other
