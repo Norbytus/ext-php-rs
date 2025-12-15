@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::{convert::TryFrom, fmt::Display};
 
 /// Represents the key of a PHP array, which can be either a long or a string.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ArrayKey<'a> {
     /// A numerical key.
     /// In Zend API it's represented by `u64` (`zend_ulong`), so the value needs
@@ -92,9 +92,35 @@ impl<'a> From<&'a str> for ArrayKey<'a> {
     }
 }
 
+impl<'a> From<i32> for ArrayKey<'a> {
+    fn from(index: i32) -> ArrayKey<'a> {
+        ArrayKey::Long(i64::from(index))
+    }
+}
+
 impl<'a> From<i64> for ArrayKey<'a> {
     fn from(index: i64) -> ArrayKey<'a> {
         ArrayKey::Long(index)
+    }
+}
+
+impl<'a> From<u64> for ArrayKey<'a> {
+    fn from(index: u64) -> ArrayKey<'a> {
+        if let Ok(index) = i64::try_from(index) {
+            ArrayKey::Long(index)
+        } else {
+            ArrayKey::String(index.to_string())
+        }
+    }
+}
+
+impl<'a> From<usize> for ArrayKey<'a> {
+    fn from(index: usize) -> ArrayKey<'a> {
+        if let Ok(index) = i64::try_from(index) {
+            ArrayKey::Long(index)
+        } else {
+            ArrayKey::String(index.to_string())
+        }
     }
 }
 
