@@ -13,7 +13,7 @@ use crate::{
     convert::IntoZvalDyn,
     describe::DocComments,
     exception::PhpException,
-    flags::{ClassFlags, MethodFlags},
+    flags::{ClassFlags, MethodFlags, PropertyFlags},
     internal::property::PropertyInfo,
     zend::{ClassEntry, ExecuteData, ZendObjectHandlers},
 };
@@ -72,6 +72,21 @@ pub trait RegisteredClass: Sized + 'static {
 
     /// Returns the constants provided by the class.
     fn constants() -> &'static [(&'static str, &'static dyn IntoZvalDyn, DocComments)];
+
+    /// Returns the static properties provided by the class.
+    ///
+    /// Static properties are declared at the class level and managed by PHP,
+    /// not by Rust handlers. Each tuple contains (name, flags, default, docs).
+    /// The default value is optional - `None` means null default.
+    #[must_use]
+    fn static_properties() -> &'static [(
+        &'static str,
+        PropertyFlags,
+        Option<&'static (dyn IntoZvalDyn + Sync)>,
+        DocComments,
+    )] {
+        &[]
+    }
 }
 
 /// Stores metadata about a classes Rust constructor, including the function
