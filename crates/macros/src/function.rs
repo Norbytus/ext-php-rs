@@ -493,7 +493,7 @@ impl<'a> Args<'a> {
 
                     // If the variable is `&[&Zval]` treat it as the variadic argument.
                     let default = defaults.remove(ident);
-                    let nullable = type_is_nullable(ty.as_ref(), default.is_some())?;
+                    let nullable = type_is_nullable(ty.as_ref())?;
                     let (variadic, as_ref, ty) = Self::parse_typed(ty);
                     result.typed.push(TypedArg {
                         name: ident,
@@ -570,18 +570,20 @@ impl<'a> Args<'a> {
     /// # Parameters
     ///
     /// * `optional` - The first optional argument. If [`None`], the optional
-    ///   arguments will be from the first nullable argument after the last
-    ///   non-nullable argument to the end of the arguments.
+    ///   arguments will be from the first optional argument (nullable or has
+    ///   default) after the last required argument to the end of the arguments.
     pub fn split_args(&self, optional: Option<&Ident>) -> (&[TypedArg<'a>], &[TypedArg<'a>]) {
         let mut mid = None;
         for (i, arg) in self.typed.iter().enumerate() {
+            // An argument is optional if it's nullable (Option<T>) or has a default value.
+            let is_optional = arg.nullable || arg.default.is_some();
             if let Some(optional) = optional {
                 if optional == arg.name {
                     mid.replace(i);
                 }
-            } else if mid.is_none() && arg.nullable {
+            } else if mid.is_none() && is_optional {
                 mid.replace(i);
-            } else if !arg.nullable {
+            } else if !is_optional {
                 mid.take();
             }
         }
@@ -635,7 +637,7 @@ impl TypedArg<'_> {
             None
         };
         let default = self.default.as_ref().map(|val| {
-            let val = val.to_token_stream().to_string();
+            let val = expr_to_php_stub(val);
             quote! {
                 .default(#val)
             }
@@ -659,8 +661,49 @@ impl TypedArg<'_> {
     fn accessor(&self, bail_fn: impl Fn(TokenStream) -> TokenStream) -> TokenStream {
         let name = self.name;
         if let Some(default) = &self.default {
-            quote! {
-                #name.val().unwrap_or(#default.into())
+            if self.nullable {
+                // For nullable types with defaults, null is acceptable
+                quote! {
+                    #name.val().unwrap_or(#default.into())
+                }
+            } else {
+                // For non-nullable types with defaults:
+                // - If argument was omitted: use default
+                // - If null was explicitly passed: throw TypeError
+                // - If a value was passed: try to convert it
+                let bail_null = bail_fn(quote! {
+                    ::ext_php_rs::exception::PhpException::new(
+                        concat!("Argument `$", stringify!(#name), "` must not be null").into(),
+                        0,
+                        ::ext_php_rs::zend::ce::type_error(),
+                    )
+                });
+                let bail_invalid = bail_fn(quote! {
+                    ::ext_php_rs::exception::PhpException::default(
+                        concat!("Invalid value given for argument `", stringify!(#name), "`.").into()
+                    )
+                });
+                quote! {
+                    match #name.zval() {
+                        Some(zval) if zval.is_null() => {
+                            // Null was explicitly passed to a non-nullable parameter
+                            #bail_null
+                        }
+                        Some(_) => {
+                            // A value was passed, try to convert it
+                            match #name.val() {
+                                Some(val) => val,
+                                None => {
+                                    #bail_invalid
+                                }
+                            }
+                        }
+                        None => {
+                            // Argument was omitted, use default
+                            #default.into()
+                        }
+                    }
+                }
             }
         } else if self.variadic {
             let variadic_name = format_ident!("__variadic_{}", name);
@@ -692,21 +735,132 @@ impl TypedArg<'_> {
     }
 }
 
-/// Returns true of the given type is nullable in PHP.
+/// Converts a Rust expression to a PHP stub-compatible default value string.
+///
+/// This function handles common Rust patterns and converts them to valid PHP
+/// syntax for use in generated stub files:
+///
+/// - `None` → `"null"`
+/// - `Some(expr)` → converts the inner expression
+/// - `42`, `3.14` → numeric literals as-is
+/// - `true`/`false` → as-is
+/// - `"string"` → `"string"`
+/// - `"string".to_string()` or `String::from("string")` → `"string"`
+fn expr_to_php_stub(expr: &Expr) -> String {
+    match expr {
+        // Handle None -> null
+        Expr::Path(path) => {
+            let path_str = path.path.to_token_stream().to_string();
+            if path_str == "None" {
+                "null".to_string()
+            } else if path_str == "true" || path_str == "false" {
+                path_str
+            } else {
+                // For other paths (constants, etc.), use the raw representation
+                path_str
+            }
+        }
+
+        // Handle Some(expr) -> convert inner expression
+        Expr::Call(call) => {
+            if let Expr::Path(func_path) = &*call.func {
+                let func_name = func_path.path.to_token_stream().to_string();
+
+                // Some(value) -> convert inner value
+                if func_name == "Some"
+                    && let Some(arg) = call.args.first()
+                {
+                    return expr_to_php_stub(arg);
+                }
+
+                // String::from("...") -> "..."
+                if (func_name == "String :: from" || func_name == "String::from")
+                    && let Some(arg) = call.args.first()
+                {
+                    return expr_to_php_stub(arg);
+                }
+            }
+
+            // Default: use raw representation
+            expr.to_token_stream().to_string()
+        }
+
+        // Handle method calls like "string".to_string()
+        Expr::MethodCall(method_call) => {
+            let method_name = method_call.method.to_string();
+
+            // "...".to_string() or "...".to_owned() or "...".into() -> "..."
+            if method_name == "to_string" || method_name == "to_owned" || method_name == "into" {
+                return expr_to_php_stub(&method_call.receiver);
+            }
+
+            // Default: use raw representation
+            expr.to_token_stream().to_string()
+        }
+
+        // String literals -> keep as-is (already valid PHP)
+        Expr::Lit(lit) => match &lit.lit {
+            syn::Lit::Str(s) => format!(
+                "\"{}\"",
+                s.value().replace('\\', "\\\\").replace('"', "\\\"")
+            ),
+            syn::Lit::Int(i) => i.to_string(),
+            syn::Lit::Float(f) => f.to_string(),
+            syn::Lit::Bool(b) => if b.value { "true" } else { "false" }.to_string(),
+            syn::Lit::Char(c) => format!("\"{}\"", c.value()),
+            _ => expr.to_token_stream().to_string(),
+        },
+
+        // Handle arrays: [] or vec![]
+        Expr::Array(arr) => {
+            if arr.elems.is_empty() {
+                "[]".to_string()
+            } else {
+                let elems: Vec<String> = arr.elems.iter().map(expr_to_php_stub).collect();
+                format!("[{}]", elems.join(", "))
+            }
+        }
+
+        // Handle vec![] macro
+        Expr::Macro(m) => {
+            let macro_name = m.mac.path.to_token_stream().to_string();
+            if macro_name == "vec" {
+                let tokens = m.mac.tokens.to_string();
+                if tokens.trim().is_empty() {
+                    return "[]".to_string();
+                }
+            }
+            // Default: use raw representation
+            expr.to_token_stream().to_string()
+        }
+
+        // Handle unary expressions like -42
+        Expr::Unary(unary) => {
+            let inner = expr_to_php_stub(&unary.expr);
+            format!("{}{}", unary.op.to_token_stream(), inner)
+        }
+
+        // Default: use raw representation
+        _ => expr.to_token_stream().to_string(),
+    }
+}
+
+/// Returns true if the given type is nullable in PHP (i.e., it's an `Option<T>`).
+///
+/// Note: Having a default value does NOT make a type nullable. A parameter with
+/// a default value is optional (can be omitted), but passing `null` explicitly
+/// should still be rejected unless the type is `Option<T>`.
 // TODO(david): Eventually move to compile-time constants for this (similar to
 // FromZval::NULLABLE).
-pub fn type_is_nullable(ty: &Type, has_default: bool) -> Result<bool> {
+pub fn type_is_nullable(ty: &Type) -> Result<bool> {
     Ok(match ty {
-        syn::Type::Path(path) => {
-            has_default
-                || path
-                    .path
-                    .segments
-                    .iter()
-                    .next_back()
-                    .is_some_and(|seg| seg.ident == "Option")
-        }
-        syn::Type::Reference(_) => false, /* Reference cannot be nullable unless */
+        Type::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .next_back()
+            .is_some_and(|seg| seg.ident == "Option"),
+        Type::Reference(_) => false, /* Reference cannot be nullable unless */
         // wrapped in `Option` (in that case it'd be a Path).
         _ => bail!(ty => "Unsupported argument type."),
     })
